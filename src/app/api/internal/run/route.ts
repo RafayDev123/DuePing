@@ -5,7 +5,7 @@ import { runWorkerCycle } from "@/services/worker";
 export const dynamic = "force-dynamic";
 
 /** Trigger one worker cycle from an external scheduler. Requires `Authorization: Bearer $CRON_SECRET`. */
-export async function POST(req: NextRequest) {
+async function run(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
   const given = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
   if (!secret || given.length !== secret.length || !timingSafeEqual(Buffer.from(given), Buffer.from(secret))) {
@@ -13,4 +13,12 @@ export async function POST(req: NextRequest) {
   }
   const result = await runWorkerCycle();
   return NextResponse.json({ ok: true, data: result });
+}
+
+export async function GET(req: NextRequest) {
+  return run(req);
+}
+
+export async function POST(req: NextRequest) {
+  return run(req);
 }
