@@ -1,0 +1,42 @@
+# Local development stack: PostgreSQL + (optionally) the web app and worker.
+#   docker compose up -d db          # just the database
+#   docker compose --profile app up  # database + web + worker (builds inside the containers)
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: app_db
+    ports: ["5432:5432"]
+    volumes: ["dueping-pg:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d app_db"]
+      interval: 5s
+      retries: 10
+
+  web:
+    profiles: ["app"]
+    image: node:22-alpine
+    working_dir: /app
+    volumes: [".:/app"]
+    env_file: [.env]
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/app_db
+    command: sh -c "npm ci && npx drizzle-kit push --force && npm run build && npm start"
+    ports: ["3000:3000"]
+    depends_on: { db: { condition: service_healthy } }
+
+  worker:
+    profiles: ["app"]
+    image: node:22-alpine
+    working_dir: /app
+    volumes: [".:/app"]
+    env_file: [.env]
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/app_db
+    command: sh -c "sleep 60 && npm run worker"
+    depends_on: { db: { condition: service_healthy } }
+
+volumes:
+  dueping-pg:
