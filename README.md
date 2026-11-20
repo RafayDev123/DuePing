@@ -10,7 +10,7 @@ DuePing *records* payments you confirm. It is not a bank, payment processor or a
 
 | Module | Status |
 | --- | --- |
-| Auth (email + password, scrypt, DB sessions, verification & reset), workspaces, roles | ✅ working |
+| Auth (email + password, scrypt, DB sessions, optional email verification & reset), workspaces, roles | ✅ working |
 | Clients (CRUD, search/filter, notes, balances per currency, CSV export, archive) | ✅ working |
 | Invoices (editor with live preview, numbering, drafts, send/duplicate/void/archive, PDF, print, private links, attachments, recurring drafts, bulk actions) | ✅ working |
 | Payment ledger (partial payments, overpayment guard, reversal, correction, verification requests) | ✅ working |

@@ -20,5 +20,7 @@ export async function getBaseUrl(): Promise<string> {
 }
 
 export const platformMailerConfigured = () => !!(process.env.EMAIL_PROVIDER_API_KEY && process.env.EMAIL_FROM);
+export const authEmailVerificationRequired = () =>
+  platformMailerConfigured() && process.env.AUTH_REQUIRE_EMAIL_VERIFICATION === "true";
 export const whatsappApiConfigured = () =>
   !!(process.env.WHATSAPP_ACCESS_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID && process.env.WHATSAPP_TEMPLATE_NAME);

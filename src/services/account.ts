@@ -1,7 +1,7 @@
 import { ApiError } from "@/lib/api";
 import { audit } from "@/lib/audit";
 import { hashPassword, randomToken, sha256, verifyPassword } from "@/lib/crypto";
-import { platformMailerConfigured } from "@/lib/env";
+import { authEmailVerificationRequired, platformMailerConfigured } from "@/lib/env";
 import { sendPlatformEmail } from "@/lib/email";
 import { escapeHtml } from "@/lib/reminder-templates";
 import { one, rows, sql } from "@/lib/sql";
@@ -23,16 +23,15 @@ export async function signup(input: { name: string; email: string; password: str
   const exists = await one(sql`select 1 from users where email = ${input.email}`);
   if (exists) throw new ApiError(409, "email_taken", "An account with this email already exists. Try signing in.");
   const hash = await hashPassword(input.password);
-  const mailer = platformMailerConfigured();
+  const needsVerification = authEmailVerificationRequired();
   const first = (await one<{ n: number }>(sql`select count(*)::int as n from users where is_platform_admin`))!.n === 0;
   const adminEmails = (process.env.ADMIN_EMAILS || "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
   const isAdmin = first || adminEmails.includes(input.email);
-  // Email verification is enforced whenever the platform mailer is configured.
   const u = await one<{ id: string }>(sql`insert into users (email, name, password_hash, email_verified_at, is_platform_admin)
-    values (${input.email}, ${input.name}, ${hash}, ${mailer ? sql`null` : sql`now()`}, ${isAdmin}) returning id`);
+    values (${input.email}, ${input.name}, ${hash}, ${needsVerification ? sql`null` : sql`now()`}, ${isAdmin}) returning id`);
   const wsId = await createWorkspace(u!.id, input.businessName, input.timezone);
   let verifyUrl: string | undefined;
-  if (mailer) {
+  if (needsVerification) {
     const token = await issueToken(u!.id, "verify_email", 48);
     verifyUrl = `${baseUrl}/verify-email?token=${token}`;
     const res = await mail(input.email, "Verify your DuePing email", `Hi ${input.name},\n\nConfirm your email to activate your DuePing account:\n${verifyUrl}\n\nThis link expires in 48 hours.`);
@@ -40,7 +39,7 @@ export async function signup(input: { name: string; email: string; password: str
     verifyUrl = devLinks() ? verifyUrl : undefined;
   }
   await audit(wsId, u!.id, "user.signup", "user", u!.id);
-  return { userId: u!.id, needsVerification: mailer, verifyUrl };
+  return { userId: u!.id, needsVerification, verifyUrl };
 }
 
 export async function login(email: string, password: string) {
@@ -48,7 +47,9 @@ export async function login(email: string, password: string) {
   // Always run a hash comparison to keep timing similar for unknown accounts.
   const ok = await verifyPassword(password, u?.password_hash ?? "scrypt$AAAAAAAAAAAAAAAAAAAAAA==$" + "A".repeat(86) + "==");
   if (!u || !ok) throw new ApiError(401, "invalid_credentials", "Incorrect email or password");
-  if (!u.email_verified_at) throw new ApiError(403, "email_unverified", "Please verify your email address first. Check your inbox for the verification link.");
+  if (!u.email_verified_at && authEmailVerificationRequired()) {
+    throw new ApiError(403, "email_unverified", "Please verify your email address first. Check your inbox for the verification link.");
+  }
   return u.id;
 }
 

@@ -9,8 +9,9 @@ See `.env.example` (only variables the code reads).
 | `APP_ENCRYPTION_KEY` | yes | AES-GCM for integration keys, IP hashing salt |
 | `CRON_SECRET` | if using `/api/internal/run` | scheduler trigger |
 | `EMBEDDED_WORKER`, `WORKER_INTERVAL_MS` | no | worker mode / interval |
-| `EMAIL_PROVIDER_API_KEY`, `EMAIL_FROM` | no | platform emails (verification, reset); enables mandatory verification |
-| `AUTH_DEV_LINKS` | dev only | show verify/reset links when no mailer |
+| `EMAIL_PROVIDER_API_KEY`, `EMAIL_FROM` | no | platform emails (verification, reset) |
+| `AUTH_REQUIRE_EMAIL_VERIFICATION` | no (default `false`) | require signup email verification when the platform mailer is configured |
+| `AUTH_DEV_LINKS` | dev only | include verification/reset links in API responses |
 | `ADMIN_EMAILS` | no | extra platform admins at signup |
 | `RESEND_WEBHOOK_SECRET` | no | delivery webhook verification |
 | `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_BUSINESS_ACCOUNT_ID`, `WHATSAPP_TEMPLATE_NAME` | no | Business API adapter (all required together) |

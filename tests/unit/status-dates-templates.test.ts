@@ -1,9 +1,29 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { addDays, applyQuietHours, diffDays, inQuietHours, isYmd, todayInTz, zonedToUtc } from "@/lib/dates";
+import { authEmailVerificationRequired } from "@/lib/env";
 import { DEFAULT_TEMPLATES, escapeHtml, renderEmailHtml, renderTemplate, TEMPLATE_KEYS } from "@/lib/reminder-templates";
 import { deriveStatus } from "@/lib/status";
 
 const base = { total: "500.00", currency: "USD", today: "2026-03-10" };
+
+afterEach(() => vi.unstubAllEnvs());
+
+describe("email verification configuration", () => {
+  it("does not require verification by default when the mailer is configured", () => {
+    vi.stubEnv("EMAIL_PROVIDER_API_KEY", "test-key");
+    vi.stubEnv("EMAIL_FROM", "DuePing <test@example.test>");
+    expect(authEmailVerificationRequired()).toBe(false);
+  });
+  it("requires verification only when explicitly enabled with a configured mailer", () => {
+    vi.stubEnv("EMAIL_PROVIDER_API_KEY", "test-key");
+    vi.stubEnv("EMAIL_FROM", "DuePing <test@example.test>");
+    vi.stubEnv("AUTH_REQUIRE_EMAIL_VERIFICATION", "true");
+    expect(authEmailVerificationRequired()).toBe(true);
+
+    vi.stubEnv("EMAIL_FROM", "");
+    expect(authEmailVerificationRequired()).toBe(false);
+  });
+});
 
 describe("derived invoice status", () => {
   it("partial payments example: 500 - 150 - 200 = 150", () => {
